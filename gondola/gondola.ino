@@ -1,13 +1,17 @@
 #include <ESP8266WiFi.h>
 
-const char *ssid = "AntaresSkyNet";
-const char *password = "nimbus2000";
+const char *ssid = "Hermes";
+const char *password = "getmesomemilk";
+
+IPAddress ip(192, 168, 4, 2);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress subnet(255, 255, 255, 0);
 
 void setup()
 {
   Serial.begin(115200);
   Serial.println();
-  Serial.println("Welcome to SkyNet.");
+  Serial.println("Welcome to Hermes.");
 
   connectToAP();
 }
@@ -19,7 +23,7 @@ void loop()
   {
     // Reconnect
     Serial.println("Disconnected.");
-    connectToAP()
+    connectToAP();
     while (1)
     {
       if (WiFi.status() == WL_CONNECTED)
@@ -38,6 +42,7 @@ bool connectToAP()
   WiFi.disconnect();
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, password); //Connect to access point
+  WiFi.config(ip, gateway, subnet);
   // Wait for connection
   while (WiFi.status() != WL_CONNECTED)
   {
@@ -49,10 +54,4 @@ bool connectToAP()
   Serial.println(ssid);
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
-
-  //Start UDP
-  Serial.println("Starting UDP");
-  udp.begin(udpPort);
-  Serial.print("Local port: ");
-  Serial.println(udp.localPort());
 }
