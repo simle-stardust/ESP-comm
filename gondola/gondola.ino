@@ -1,57 +1,167 @@
 #include <ESP8266WiFi.h>
 
-const char *ssid = "Hermes";
-const char *password = "getmesomemilk";
+#define LED0 2 // WIFI Module LED
 
-IPAddress ip(192, 168, 4, 2);
+// Variables
+char *ssid = "Hermes"; // Wifi Name
+char *password = "thereisnospoon";   // Wifi Password
+const String Devicename = "Antares";
+
+char serialStart = '@';
+char serialEnd = '!';
+
+// WIFI Module Role & Port
+IPAddress ip(192, 168, 4, 3);
+IPAddress server(192, 168, 4, 1);
 IPAddress gateway(192, 168, 4, 1);
-IPAddress subnet(255, 255, 255, 0);
+IPAddress mask(255, 255, 255, 0);
+
+unsigned int port = 2390;
+
+WiFiClient client;
 
 void setup()
 {
   Serial.begin(115200);
-  Serial.println();
-  Serial.println("Welcome to Hermes.");
+
+  pinMode(LED0, OUTPUT);    // WIFI OnBoard LED Light
+  digitalWrite(LED0, !LOW); // Turn WiFi LED Off
 
   connectToAP();
 }
 
 void loop()
 {
-  // Check WiFi connectivity;
-  if (WiFi.status() != WL_CONNECTED)
-  {
-    // Reconnect
-    Serial.println("Disconnected.");
-    connectToAP();
-    while (1)
+
+    char *message = readSerial(serialStart, serialEnd);
+    if (message != "0")
     {
-      if (WiFi.status() == WL_CONNECTED)
-        break;
+
+      Serial.print("Received From Serial: ");
+      Serial.println(message);
+      sendData(message);
+    }
+  
+}
+
+void sendData(char *message)
+{
+  // Send Data
+  client.println(message);
+
+  while (1)
+  {
+    // Check For Reply
+    int len = client.available();
+    if (len > 0)
+    {
+      if (len > 80)
+      {
+        len = 80;
+      }
+      String line = client.readStringUntil('\r'); // if '\r' is found
+      Serial.print("received: ");                 // print the content
+      Serial.println(line);
+      break;
     }
   }
-  else
+
+  client.flush(); // Empty Buffer
+  connectToAP();
+}
+
+void connectToAP()
+{
+  if (WiFi.status() != WL_CONNECTED)
   {
+
+    client.stop(); //Make Sure Everything Is Reset
+    WiFi.disconnect();
+    Serial.println("Not Connected...trying to connect...");
+    delay(50);
+    WiFi.mode(WIFI_STA);        // station (Client) Only - to avoid broadcasting an SSID ??
+    WiFi.begin(ssid, password); // the SSID that we want to connect to
+    WiFi.config(ip, gateway, mask);
+
+    while (WiFi.status() != WL_CONNECTED)
+    {
+      for (int i = 0; i < 10; i++)
+      {
+        digitalWrite(LED0, !HIGH);
+        delay(250);
+        digitalWrite(LED0, !LOW);
+        delay(250);
+        Serial.print(".");
+      }
+      Serial.println("");
+    }
+    // stop blinking to indicate if connected -------------------------------
+    digitalWrite(LED0, !HIGH);
+    Serial.println("!-- Client Device Connected --!");
+
+    // Printing IP Address --------------------------------------------------
+    Serial.println("Connected To      : " + String(WiFi.SSID()));
+    Serial.println("Signal Strenght   : " + String(WiFi.RSSI()) + " dBm");
+    Serial.print("Server IP Address : ");
+    Serial.println(server);
+    Serial.print("Device IP Address : ");
+    Serial.println(WiFi.localIP());
+
+    // conecting as a client -------------------------------------
+    establishConnection();
   }
 }
 
-
-bool connectToAP()
+void establishConnection()
 {
-  Serial.println("Connecting ...");
-  WiFi.disconnect();
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(ssid, password); //Connect to access point
-  WiFi.config(ip, gateway, subnet);
-  // Wait for connection
-  while (WiFi.status() != WL_CONNECTED)
+  // first make sure you got disconnected
+  client.stop();
+
+  // if sucessfully connected send connection message
+  if (client.connect(server, port))
   {
-    delay(500);
-    Serial.print(".");
+    Serial.println("<" + Devicename + "-CONNECTED>");
+    client.println("<" + Devicename + "-CONNECTED>");
   }
-  Serial.println("");
-  Serial.print("Connected to: ");
-  Serial.println(ssid);
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  client.setNoDelay(1); // allow fast communication?
+}
+
+char *readSerial(char startMarker, char endMarker)
+{
+  char incomingBuffer[1024];
+  static boolean recvInProgress = false;
+  static byte ndx = 0;
+  char rc;
+
+  while (Serial.available() > 0)
+  {
+    rc = Serial.read();
+
+    if (recvInProgress == true)
+    {
+      if (rc != endMarker)
+      {
+        incomingBuffer[ndx] = rc;
+        ndx++;
+        if (ndx >= sizeof incomingBuffer)
+        {
+          ndx = sizeof incomingBuffer - 1;
+        }
+      }
+      else
+      {
+        incomingBuffer[ndx] = '\0'; // terminate the string
+        recvInProgress = false;
+        ndx = 0;
+        Serial.println(incomingBuffer);
+        return incomingBuffer;
+      }
+    }
+
+    else if (rc == startMarker)
+    {
+      recvInProgress = true;
+    }
+  }
+  return "0";
 }

@@ -1,142 +1,169 @@
 #include <ESP8266WiFi.h>
-#include <ESP8266WebServer.h>
-#include <ESP8266HTTPClient.h>
+#define LED0 2
+#define MAXSC 6 // MAXIMUM NUMBER OF CLIENTS
 
-char startMarker = '@';
-char endMarker = '!';
+char *ssid = "Hermes";
+char *password = "thereisnospoon";
+unsigned int TCPPort = 2390;
 
-
-#define bufferSize 8192
-const byte bufferCharSize = 255;
-char incomingBuffer[bufferCharSize];
-char outgoingBuffer[bufferSize];
-static boolean recvInProgress = false;
-static byte ndx = 0;
-char rc;
-
-const char *ssid = "Hermes";
-const char *password = "getmesomemilk";
-
-
+IPAddress antares(192, 168, 4, 2);
 IPAddress ip(192, 168, 4, 1);
-IPAddress odcinacz(192, 168, 4, 2);
-IPAddress antares(192, 168, 4, 3);
-IPAddress subnet(255, 255, 255, 0);
+IPAddress gateway(192, 168, 4, 1);
+IPAddress mask(255, 255, 255, 0);
 
-/* Pamięć: */
-// Gondola Główna
-typedef struct {
+WiFiServer  server(TCPPort);      // THE SERVER AND THE PORT NUMBER
+WiFiClient  client[MAXSC];        // THE SERVER CLIENTS Maximum number
+
+typedef struct
+{
   int8_t hour = 0x00;
   int8_t minute = 0x00;
   int8_t second = 0x00;
-  int16_t DS18B20[4] = {0x0000};
   int16_t humidity = 0x0000;
   int16_t pressure = 0x0000;
   int32_t lattitude = 0x00000000;
   int32_t longtitude = 0x00000000;
+  int16_t DS18B20[4] = {0x0000};
   int16_t RTD[30] = {0x0000};
-  int16_t mosfet = 0x0000;
+  int16_t mosfet[12] = {0x0000};
   int16_t flag_main = 0x0000;
   int16_t flag_antares = 0x0000;
+  int16_t fallDownToEarth = 0x0000;
 } frame_main;
 
-/*
-  // Gondola Experymentalna
-  typedef struct {
-  int16_t RTD[30] = {0x0000};
-  int16_t mosfet = 0x0000;
-  int16_t flag = 0x0000;
+frame_main Memory;
 
-  } frame_antares;
-*/
-
-//frame_main Memory;
-
-ESP8266WebServer server(80);
-HTTPClient http;
-
-void setup() {
+void setup(){
+  
   Serial.begin(115200);
-  Serial.println();
-  Serial.print("Hermes reporting for duty");
-
-  WiFi.softAP(ssid, password);
-
-  IPAddress myIP = WiFi.softAPIP();
-  Serial.print("AP IP address: ");
-  Serial.println(myIP);
-
-
-  server.on("/", handleRoot);
-  server.on("/data", handleData);
-  server.begin();
-  Serial.println("HTTP server started");
+    
+  pinMode(LED0, OUTPUT);
+  
+  setAP(ssid, password);
 
 }
 
-void loop() {
-  server.handleClient();
+void loop(){
+  
+  HandleClients(); 
 
-  if (Serial.available() > 0)
-  {
-    rc = Serial.read();
+}
 
-    if (recvInProgress == true)
-    {
-      if (rc != endMarker)
-      {
-        incomingBuffer[ndx] = rc;
-        ndx++;
-        if (ndx >= bufferCharSize)
-        {
-          ndx = bufferCharSize - 1;
+//====================================================================================
+ 
+void setAP(char* ssid, char* password){
+  // Stop any previous WIFI
+  WiFi.disconnect();
+
+  // Setting The Wifi Mode
+  WiFi.mode(WIFI_AP_STA);
+  Serial.println("WIFI Mode : AccessPoint");
+   
+  // Starting the access point
+  WiFi.softAPConfig(ip, gateway, mask);                 // softAPConfig (local_ip, gateway, subnet)
+  WiFi.softAP(ssid, password, 1, 0, MAXSC);                           // WiFi.softAP(ssid, password, channel, hidden, max_connection)     
+  Serial.println("WIFI < " + String(ssid) + " > ... Started");
+   
+  // wait a bit
+  delay(50);
+   
+  // getting server IP
+  IPAddress IP = WiFi.softAPIP();
+  
+  // printing the server IP address
+  Serial.print("AccessPoint IP : ");
+  Serial.println(IP);
+
+  // starting server
+  server.begin();                                                 // which means basically WiFiServer(TCPPort);
+  
+  Serial.println("Server Started");
+}
+
+void HandleClients(){
+  String Message;
+  if(server.hasClient()){
+    WiFiClient client = server.available();
+    client.setNoDelay(1);                                          // enable fast communication
+    while(client.connected()){
+      //---------------------------------------------------------------
+      // If clients are connected
+      //---------------------------------------------------------------
+      if(client.available()){
+        // read the message
+        Message = client.readStringUntil('\r');
+          
+        // print the message on the screen
+        Serial.println("Received Message:");
+          
+        // print who sent it
+        Serial.print("From ");
+        Serial.print(client.remoteIP());
+        Serial.print(", port ");
+        Serial.println(client.remotePort());
+
+        // content
+        Serial.print("Content: ");
+        Serial.println(Message);
+        processFrame(Message);
+
+        // reply to the client with a message  
+        if (Message.indexOf("GET /memory/") >= 0) {
+           client.println(HTMLResponse(CSVmemoryDump()));
+           delay(50);
+           client.stop();
+        } else if (Message.indexOf("GET /fallDownToEarth/") >= 0) {
+           client.println(HTMLResponse((String)Memory.fallDownToEarth));
+           delay(50);
+           client.stop();
+        } else {
+          client.println("OK");  // important to use println instead of print, as we are looking for a '\r' at the client 
         }
+
+        client.flush();
       }
-      else
-      {
-        incomingBuffer[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-
-        Serial.print("Received From Serial: ");
-        Serial.println(incomingBuffer);
-
-        sendDataTo(odcinacz, incomingBuffer);
-
-        ndx = 0;
-      }
-    }
-
-    else if (rc == startMarker)
-    {
-      recvInProgress = true;
-    }
+    }    
   }
 }
 
-void handleRoot() {
-  server.send(200, "text/html", "<h1>Hermes reporting for duty</h1>");
+void processFrame(String message) {
+    
 }
 
-void handleData() {
-  server.send(200, "text/html", "OK");
-  Serial.print("Received From " + server.client().remoteIP().toString() + ": ");
-  Serial.println(server.arg("payload"));
-}
 
-void sendDataTo(const IPAddress& ip, String message) {
-  http.begin("http://" + Ip2Str(ip) + ":80/data");
-  http.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  int httpCode = http.POST("payload=" + message);
-  String payload = http.getString();
-  String response = String(httpCode) + " " + String(payload);
-  http.end();
-  Serial.println(response);
-}
-
-String Ip2Str(const IPAddress& ipAddress)
+String HTMLResponse(String body)
 {
-  return String(ipAddress[0]) + String(".") + \
-         String(ipAddress[1]) + String(".") + \
-         String(ipAddress[2]) + String(".") + \
-         String(ipAddress[3]);
+
+  String content  = String("<!DOCTYPE HTML>") +
+            "<html>"+
+            body +
+            "</html>" + 
+            "\r\n\r\n";
+  String htmlPage =
+     String("HTTP/1.1 200 OK\r\n") +
+            "Content-Type: text/html\r\n" +
+            "Content-Length: " + content.length() + "\r\n" +
+            "Connection: close\r\n" +  // the connection will be closed after completion of the response
+            "Refresh: 1\r\n" +  // refresh the page automatically every 5 sec
+            "\r\n" + content;
+  return htmlPage;
+}
+
+
+String CSVmemoryDump() {
+  //CSV: hour,minute,second,humidity,pressure,lattitude,longitude,4xDS18B20,30xRTD,12xmosfet,flag_main,flag_antares,flag_odcinacz
+            String CSV = String(Memory.hour) + "," + Memory.minute + "," + Memory.second + "," + Memory.humidity + "," + Memory.pressure + "," + Memory.lattitude + "," + Memory.longtitude + ",";
+            for(int i = 0; i < 4; ++i) {
+              CSV += Memory.DS18B20[i] + ",";
+            }
+
+            for(int i = 0; i < 30; ++i) {
+              CSV += Memory.RTD[i] + ",";
+            }
+
+            for(int i = 0; i < 12; ++i) {
+              CSV += Memory.mosfet[i] + ",";
+            }
+            CSV += String(Memory.flag_main) + "," + Memory.flag_antares + "," + Memory.fallDownToEarth;
+            return CSV;
 }
