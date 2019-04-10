@@ -33,21 +33,37 @@ void setup()
 void loop()
 {
 
-    char *message = readSerial(serialStart, serialEnd);
-    if (message != "0")
+     // Check WiFi connectivity;
+  if (WiFi.status() != WL_CONNECTED)
+  {
+    // Reconnect
+    Serial.println("Disconnected.");
+    connectToAP();
+    while (1)
     {
-
-      Serial.print("Received From Serial: ");
-      Serial.println(message);
-      sendData(message);
+      if (WiFi.status() == WL_CONNECTED)
+        break;
     }
+  }
+  else
+  {
+    String message = readSerial(serialStart, serialEnd);
+    if (message.length() > 0)
+    {
+      sendData(&message);
+    }
+  }
   
 }
 
-void sendData(char *message)
+void sendData(String *message)
 {
+
+  // conecting as a client
+  client.connect(server, port);
+    
   // Send Data
-  client.println(message);
+  client.println(*message);
 
   while (1)
   {
@@ -67,6 +83,7 @@ void sendData(char *message)
   }
 
   client.flush(); // Empty Buffer
+  client.stop();
   connectToAP();
 }
 
@@ -107,7 +124,6 @@ void connectToAP()
     Serial.print("Device IP Address : ");
     Serial.println(WiFi.localIP());
 
-    // conecting as a client -------------------------------------
     establishConnection();
   }
 }
@@ -124,44 +140,16 @@ void establishConnection()
     client.println("<" + Devicename + "-CONNECTED>");
   }
   client.setNoDelay(1); // allow fast communication?
+
+  // first make sure you got disconnected
+  client.stop();
 }
 
-char *readSerial(char startMarker, char endMarker)
-{
-  char incomingBuffer[1024];
-  static boolean recvInProgress = false;
-  static byte ndx = 0;
-  char rc;
-
-  while (Serial.available() > 0)
-  {
-    rc = Serial.read();
-
-    if (recvInProgress == true)
-    {
-      if (rc != endMarker)
-      {
-        incomingBuffer[ndx] = rc;
-        ndx++;
-        if (ndx >= sizeof incomingBuffer)
-        {
-          ndx = sizeof incomingBuffer - 1;
-        }
-      }
-      else
-      {
-        incomingBuffer[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-        ndx = 0;
-        Serial.println(incomingBuffer);
-        return incomingBuffer;
-      }
-    }
-
-    else if (rc == startMarker)
-    {
-      recvInProgress = true;
-    }
+String readSerial(char startMarker, char endMarker) {
+  String message = Serial.readStringUntil(endMarker);
+  if (message.indexOf(startMarker) >= 0) {
+    message.remove(0, message.indexOf(startMarker) + 1);
+    return message;
   }
-  return "0";
+  return "";
 }

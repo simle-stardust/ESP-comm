@@ -1,7 +1,7 @@
 #include <ESP8266WiFi.h>
 
 #define LED0 2 // WIFI Module LED
-#define LED1 5 // Green LED breadboard
+#define LED1 4 // Green LED breadboard
 
 // Variables
 char *ssid = "Hermes";     // Wifi Name
@@ -24,7 +24,7 @@ WiFiClient client;
 void setup()
 {
   Serial.begin(115200);
-  
+
   setupWiFiLED();
   setupOdcinacz();
   connectToAP();
@@ -46,20 +46,27 @@ void loop()
   }
   else
   {
-    char *message = readSerial(serialStart, serialEnd);
-    if (message != "0")
+    String message = readSerial(serialStart, serialEnd);
+    if (message.length() > 0)
     {
-      Serial.print("Received From Serial: ");
-      Serial.println(message);
-      sendData(message);
+      if (message.indexOf("led-on") >= 0) {
+        digitalWrite(LED0, !HIGH);
+      } else if (message.indexOf("led-off") >= 0) {
+        digitalWrite(LED0, !LOW);
+      } else {
+        getData(message);
+      }
     }
   }
 }
 
-void sendData(char *message)
+void sendData(String *message)
 {
+  // conecting as a client
+  client.connect(server, port);
+  
   // Send Data
-  client.println(message);
+  client.println(*message);
 
   while (1)
   {
@@ -82,6 +89,41 @@ void sendData(char *message)
   connectToAP();
 }
 
+void getData(String uri)
+{
+
+  // conecting as a client
+  client.connect(server, port);
+    
+  // Send Data
+  Serial.println("GETting " + uri);
+
+  client.println("GET " + uri);
+
+
+
+  while (1)
+  {
+    // Check For Reply
+    int len = client.available();
+    if (len > 0)
+    {
+      if (len > 80)
+      {
+        len = 80;
+      }
+      String line = client.readStringUntil('\r'); // if '\r' is found
+      Serial.print("received from tcp: ");                     // print the content
+      Serial.println(line);
+      break;
+    }
+  }
+
+  client.flush(); // Empty Buffer
+  client.stop();
+  connectToAP();
+}
+
 void connectToAP()
 {
   if (WiFi.status() != WL_CONNECTED)
@@ -94,7 +136,7 @@ void connectToAP()
     WiFi.mode(WIFI_STA);        // station (Client) Only - to avoid broadcasting an SSID ??
     WiFi.begin(ssid, password); // the SSID that we want to connect to
     WiFi.config(ip, gateway, mask);
-    
+
     while (WiFi.status() != WL_CONNECTED)
     {
       for (int i = 0; i < 10; i++)
@@ -119,7 +161,6 @@ void connectToAP()
     Serial.print("Device IP Address : ");
     Serial.println(WiFi.localIP());
 
-    // conecting as a client -------------------------------------
     establishConnection();
   }
 }
@@ -138,44 +179,13 @@ void establishConnection()
   client.setNoDelay(1); // allow fast communication?
 }
 
-char *readSerial(char startMarker, char endMarker)
-{
-  char incomingBuffer[255];
-  static boolean recvInProgress = false;
-  static byte ndx = 0;
-  char rc;
-
-  while (Serial.available() > 0)
-  {
-    rc = Serial.read();
-
-    if (recvInProgress == true)
-    {
-      if (rc != endMarker)
-      {
-        incomingBuffer[ndx] = rc;
-        ndx++;
-        if (ndx >= sizeof incomingBuffer)
-        {
-          ndx = sizeof incomingBuffer - 1;
-        }
-      }
-      else
-      {
-        incomingBuffer[ndx] = '\0'; // terminate the string
-        recvInProgress = false;
-        ndx = 0;
-        Serial.println(incomingBuffer);
-        return incomingBuffer;
-      }
-    }
-
-    else if (rc == startMarker)
-    {
-      recvInProgress = true;
-    }
+String readSerial(char startMarker, char endMarker) {
+  String message = Serial.readStringUntil(endMarker);
+  if (message.indexOf(startMarker) >= 0) {
+    message.remove(0, message.indexOf(startMarker) + 1);
+    return message;
   }
-  return "0";
+  return "";
 }
 
 void setupWiFiLED() {
@@ -184,14 +194,6 @@ void setupWiFiLED() {
 }
 
 void setupOdcinacz() {
-  pinMode(LED1, OUTPUT); 
+  pinMode(LED1, OUTPUT);
   digitalWrite(LED1, !LOW);
-}
-
-void setOdcinacz(bool drop) {
-    if(drop == true) {
-      digitalWrite(LED0, !HIGH);
-    } else {
-      digitalWrite(LED1, !LOW);
-    }
 }

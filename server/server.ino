@@ -33,69 +33,69 @@ typedef struct
 
 frame_main Memory;
 
-void setup(){
-  
+void setup() {
+
   Serial.begin(115200);
-    
+
   pinMode(LED0, OUTPUT);
-  
+
   setAP(ssid, password);
 
 }
 
-void loop(){
-  
-  HandleClients(); 
+void loop() {
+
+  HandleClients();
 
 }
 
 //====================================================================================
- 
-void setAP(char* ssid, char* password){
+
+void setAP(char* ssid, char* password) {
   // Stop any previous WIFI
   WiFi.disconnect();
 
   // Setting The Wifi Mode
   WiFi.mode(WIFI_AP_STA);
   Serial.println("WIFI Mode : AccessPoint");
-   
+
   // Starting the access point
   WiFi.softAPConfig(ip, gateway, mask);                 // softAPConfig (local_ip, gateway, subnet)
-  WiFi.softAP(ssid, password, 1, 0, MAXSC);                           // WiFi.softAP(ssid, password, channel, hidden, max_connection)     
+  WiFi.softAP(ssid, password, 1, 0, MAXSC);                           // WiFi.softAP(ssid, password, channel, hidden, max_connection)
   Serial.println("WIFI < " + String(ssid) + " > ... Started");
-   
+
   // wait a bit
   delay(50);
-   
+
   // getting server IP
   IPAddress IP = WiFi.softAPIP();
-  
+
   // printing the server IP address
   Serial.print("AccessPoint IP : ");
   Serial.println(IP);
 
   // starting server
   server.begin();                                                 // which means basically WiFiServer(TCPPort);
-  
+
   Serial.println("Server Started");
 }
 
-void HandleClients(){
+void HandleClients() {
   String Message;
-  if(server.hasClient()){
+  if (server.hasClient()) {
     WiFiClient client = server.available();
     client.setNoDelay(1);                                          // enable fast communication
-    while(client.connected()){
+    while (client.connected()) {
       //---------------------------------------------------------------
       // If clients are connected
       //---------------------------------------------------------------
-      if(client.available()){
+      if (client.available()) {
         // read the message
         Message = client.readStringUntil('\r');
-          
+        
         // print the message on the screen
         Serial.println("Received Message:");
-          
+
         // print who sent it
         Serial.print("From ");
         Serial.print(client.remoteIP());
@@ -105,65 +105,79 @@ void HandleClients(){
         // content
         Serial.print("Content: ");
         Serial.println(Message);
-        processFrame(Message);
 
-        // reply to the client with a message  
-        if (Message.indexOf("GET /memory/") >= 0) {
-           client.println(HTMLResponse(CSVmemoryDump()));
-           delay(50);
-           client.stop();
-        } else if (Message.indexOf("GET /fallDownToEarth/") >= 0) {
-           client.println(HTMLResponse((String)Memory.fallDownToEarth));
-           delay(50);
-           client.stop();
-        } else {
-          client.println("OK");  // important to use println instead of print, as we are looking for a '\r' at the client 
+        processMessage(Message);
+
+        // reply to the client with a message
+        if (Message.indexOf("GET") >= 0) {
+          Serial.println("Serving GET request");
+          if (Message.indexOf("/memory/") >= 0) {
+            client.println(HTMLResponse(CSVmemoryDump()));
+          } else if (Message.indexOf("/fallDownToEarth/") >= 0) {
+            client.println(Memory.fallDownToEarth);
+          } else if (Message.indexOf("/418/") >= 0) {
+            client.println("I'm a teapot");
+          }
+        }
+        else {
+          client.println("OK");  // important to use println instead of print, as we are looking for a '\r' at the client
         }
 
+        client.println();
         client.flush();
+        client.stop();
       }
-    }    
+    }
   }
 }
 
-void processFrame(String message) {
-    
+void processMessage(String Message) {
+  String command = "MarcinSetValuesKom:";
+  if(Message.indexOf(command) >= 0) {
+      Message.remove(0, Message.indexOf(command) + command.length());
+      saveToMemory(Message);
+   }
 }
 
+void saveToMemory(String data) {
+  char temp[1024];
+  data.toCharArray(temp, data.length()+1);
+  sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd", &Memory.RTD[0],&Memory.RTD[1],&Memory.RTD[2],&Memory.RTD[3],&Memory.RTD[4],&Memory.RTD[5],&Memory.RTD[6],&Memory.RTD[7],&Memory.RTD[8],&Memory.RTD[9],&Memory.RTD[10],&Memory.RTD[11],&Memory.RTD[12],&Memory.RTD[13],&Memory.RTD[14],&Memory.RTD[15],&Memory.RTD[16],&Memory.RTD[17],&Memory.RTD[18],&Memory.RTD[19],&Memory.RTD[20],&Memory.RTD[21],&Memory.RTD[22],&Memory.RTD[23],&Memory.RTD[24],&Memory.RTD[25],&Memory.RTD[26],&Memory.RTD[27],&Memory.RTD[28],&Memory.RTD[29], &Memory.mosfet[0],&Memory.mosfet[1],&Memory.mosfet[2],&Memory.mosfet[3],&Memory.mosfet[4],&Memory.mosfet[5],&Memory.mosfet[6],&Memory.mosfet[7],&Memory.mosfet[8],&Memory.mosfet[9],&Memory.mosfet[10],&Memory.mosfet[11], &Memory.flag_antares);
+}
 
 String HTMLResponse(String body)
 {
 
   String content  = String("<!DOCTYPE HTML>") +
-            "<html>"+
-            body +
-            "</html>" + 
-            "\r\n\r\n";
+                    "<html>" +
+                    body +
+                    "</html>" +
+                    "\r\n\r\n";
   String htmlPage =
-     String("HTTP/1.1 200 OK\r\n") +
-            "Content-Type: text/html\r\n" +
-            "Content-Length: " + content.length() + "\r\n" +
-            "Connection: close\r\n" +  // the connection will be closed after completion of the response
-            "Refresh: 1\r\n" +  // refresh the page automatically every 5 sec
-            "\r\n" + content;
+    String("HTTP/1.1 200 OK\r\n") +
+    "Content-Type: text/html\r\n" +
+    "Content-Length: " + content.length() + "\r\n" +
+    "Connection: close\r\n" +  // the connection will be closed after completion of the response
+    "Refresh: 1\r\n" +  // refresh the page automatically every 5 sec
+    "\r\n" + content;
   return htmlPage;
 }
 
 
 String CSVmemoryDump() {
   //CSV: hour,minute,second,humidity,pressure,lattitude,longitude,4xDS18B20,30xRTD,12xmosfet,flag_main,flag_antares,flag_odcinacz
-            String CSV = String(Memory.hour) + "," + Memory.minute + "," + Memory.second + "," + Memory.humidity + "," + Memory.pressure + "," + Memory.lattitude + "," + Memory.longtitude + ",";
-            for(int i = 0; i < 4; ++i) {
-              CSV += Memory.DS18B20[i] + ",";
-            }
+  String CSV = String(Memory.hour) + "," + Memory.minute + "," + Memory.second + "," + Memory.humidity + "," + Memory.pressure + "," + Memory.lattitude + "," + Memory.longtitude + ",";
+  for (int i = 0; i < 4; ++i) {
+    CSV += String(Memory.DS18B20[i]) + ",";
+  }
 
-            for(int i = 0; i < 30; ++i) {
-              CSV += Memory.RTD[i] + ",";
-            }
+  for (int i = 0; i < 30; ++i) {
+    CSV += String(Memory.RTD[i]) + ",";
+  }
 
-            for(int i = 0; i < 12; ++i) {
-              CSV += Memory.mosfet[i] + ",";
-            }
-            CSV += String(Memory.flag_main) + "," + Memory.flag_antares + "," + Memory.fallDownToEarth;
-            return CSV;
+  for (int i = 0; i < 12; ++i) {
+    CSV += String(Memory.mosfet[i]) + ",";
+  }
+  CSV += String(Memory.flag_main, BIN) + "," + String(Memory.flag_antares, BIN) + "," + String(Memory.fallDownToEarth, BIN);
+  return CSV;
 }
