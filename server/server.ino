@@ -6,6 +6,9 @@ char *ssid = "Hermes";
 char *password = "thereisnospoon";
 unsigned int TCPPort = 2390;
 
+char serialStart = '@';
+char serialEnd = '!';
+
 IPAddress antares(192, 168, 4, 2);
 IPAddress ip(192, 168, 4, 1);
 IPAddress gateway(192, 168, 4, 1);
@@ -44,9 +47,15 @@ void setup() {
 }
 
 void loop() {
-
+  String message = readSerial(serialStart, serialEnd);
+  if(message.indexOf("MarcinOdcinaj") >= 0) {
+    Memory.fallDownToEarth = 0x1111;    
+  }
+  if(message.indexOf("reset") >= 0) {
+    Memory.fallDownToEarth = 0x0000;    
+  }
+    
   HandleClients();
-
 }
 
 //====================================================================================
@@ -135,14 +144,29 @@ void processMessage(String Message) {
   String command = "MarcinSetValuesKom:";
   if(Message.indexOf(command) >= 0) {
       Message.remove(0, Message.indexOf(command) + command.length());
-      saveToMemory(Message);
+      saveToMemoryKom(Message);
    }
+}
+
+void saveToMemoryKom(String data) {
+  char temp[1024];
+  data.toCharArray(temp, data.length()+1);
+  sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd", &Memory.RTD[0],&Memory.RTD[1],&Memory.RTD[2],&Memory.RTD[3],&Memory.RTD[4],&Memory.RTD[5],&Memory.RTD[6],&Memory.RTD[7],&Memory.RTD[8],&Memory.RTD[9],&Memory.RTD[10],&Memory.RTD[11],&Memory.RTD[12],&Memory.RTD[13],&Memory.RTD[14],&Memory.RTD[15],&Memory.RTD[16],&Memory.RTD[17],&Memory.RTD[18],&Memory.RTD[19],&Memory.RTD[20],&Memory.RTD[21],&Memory.RTD[22],&Memory.RTD[23],&Memory.RTD[24],&Memory.RTD[25],&Memory.RTD[26],&Memory.RTD[27],&Memory.RTD[28],&Memory.RTD[29], &Memory.mosfet[0],&Memory.mosfet[1],&Memory.mosfet[2],&Memory.mosfet[3],&Memory.mosfet[4],&Memory.mosfet[5],&Memory.mosfet[6],&Memory.mosfet[7],&Memory.mosfet[8],&Memory.mosfet[9],&Memory.mosfet[10],&Memory.mosfet[11], &Memory.flag_antares);
 }
 
 void saveToMemory(String data) {
   char temp[1024];
   data.toCharArray(temp, data.length()+1);
   sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd", &Memory.RTD[0],&Memory.RTD[1],&Memory.RTD[2],&Memory.RTD[3],&Memory.RTD[4],&Memory.RTD[5],&Memory.RTD[6],&Memory.RTD[7],&Memory.RTD[8],&Memory.RTD[9],&Memory.RTD[10],&Memory.RTD[11],&Memory.RTD[12],&Memory.RTD[13],&Memory.RTD[14],&Memory.RTD[15],&Memory.RTD[16],&Memory.RTD[17],&Memory.RTD[18],&Memory.RTD[19],&Memory.RTD[20],&Memory.RTD[21],&Memory.RTD[22],&Memory.RTD[23],&Memory.RTD[24],&Memory.RTD[25],&Memory.RTD[26],&Memory.RTD[27],&Memory.RTD[28],&Memory.RTD[29], &Memory.mosfet[0],&Memory.mosfet[1],&Memory.mosfet[2],&Memory.mosfet[3],&Memory.mosfet[4],&Memory.mosfet[5],&Memory.mosfet[6],&Memory.mosfet[7],&Memory.mosfet[8],&Memory.mosfet[9],&Memory.mosfet[10],&Memory.mosfet[11], &Memory.flag_antares);
+}
+
+String readSerial(char startMarker, char endMarker) {
+  String message = Serial.readStringUntil(endMarker);
+  if (message.indexOf(startMarker) >= 0) {
+    message.remove(0, message.indexOf(startMarker) + 1);
+    return message;
+  }
+  return "";
 }
 
 String HTMLResponse(String body)

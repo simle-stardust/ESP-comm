@@ -1,7 +1,9 @@
 #include <ESP8266WiFi.h>
 
 #define LED0 2 // WIFI Module LED
-#define LED1 4 // Green LED breadboard
+
+#define LED1 2 // Tutaj ustaw pin dla odcinacza.
+
 
 // Variables
 char *ssid = "Hermes";     // Wifi Name
@@ -26,7 +28,6 @@ void setup()
   Serial.begin(115200);
 
   setupWiFiLED();
-  setupOdcinacz();
   connectToAP();
 }
 
@@ -46,17 +47,14 @@ void loop()
   }
   else
   {
-    String message = readSerial(serialStart, serialEnd);
-    if (message.length() > 0)
-    {
-      if (message.indexOf("led-on") >= 0) {
-        digitalWrite(LED0, !HIGH);
-      } else if (message.indexOf("led-off") >= 0) {
-        digitalWrite(LED0, !LOW);
-      } else {
-        getData(message);
-      }
+    String data = getData("/fallDownToEarth/");
+    if (data != "0") {
+      digitalWrite(LED0, !LOW);
+    }  else {
+      digitalWrite(LED0, !HIGH);
     }
+
+    delay(1000);
   }
 }
 
@@ -64,7 +62,7 @@ void sendData(String *message)
 {
   // conecting as a client
   client.connect(server, port);
-  
+
   // Send Data
   client.println(*message);
 
@@ -89,12 +87,12 @@ void sendData(String *message)
   connectToAP();
 }
 
-void getData(String uri)
+String getData(String uri)
 {
 
   // conecting as a client
   client.connect(server, port);
-    
+
   // Send Data
   Serial.println("GETting " + uri);
 
@@ -115,6 +113,7 @@ void getData(String uri)
       String line = client.readStringUntil('\r'); // if '\r' is found
       Serial.print("received from tcp: ");                     // print the content
       Serial.println(line);
+      return line;
       break;
     }
   }
@@ -193,7 +192,8 @@ void setupWiFiLED() {
   digitalWrite(LED0, !LOW); // Turn WiFi LED Off
 }
 
-void setupOdcinacz() {
-  pinMode(LED1, OUTPUT);
-  digitalWrite(LED1, !LOW);
+int toggled = 0;
+
+void toggleLED() {
+  digitalWrite(LED0, !((toggled++ % 2) ? LOW : HIGH)); // Turn WiFi LED Off
 }
