@@ -51,15 +51,20 @@ void loop() {
   digitalWrite(LED0, !LOW);
   String message = readSerial(serialStart, serialEnd);
   if(message.indexOf("MarcinOdcinaj") >= 0) {
+    Serial.println("!!!! ODCIECIE !!!!");
     Memory.fallDownToEarth = 0x1111;    
   }
   if(message.indexOf("MarcinSetValues") >= 0) {
+    Serial.println("SERIAL SET VALUES: ");
+    Serial.println(message);
     processMessage(message);
   }
   if(message.indexOf("MarcinGetValues") >= 0) {
+    Serial.print("SERIAL GET VALUES");
     Serial.println("@MarcinOK:" + CSVmemoryDump() + "!");
   }
   if(message.indexOf("reset") >= 0) {
+    Serial.println("ODCIECIE RESET");
     Memory.fallDownToEarth = 0x0000;    
   }
     
@@ -122,7 +127,7 @@ void HandleClients() {
         // content
         Serial.print("Content: ");
         Serial.println(Message);
-
+        
         processMessage(Message);
 
         // reply to the client with a message
@@ -165,8 +170,8 @@ void processMessage(String Message) {
       Message.remove(0, Message.indexOf(command) + command.length());
       Message.toCharArray(temp, Message.length()+1);
 
-      sscanf(temp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%u,%d,%d", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.DS18B20[5],&Memory.DS18B20[6],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
-   }
+      sscanf(temp, "%c,%c,%c,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%d,%d,%d,%hd", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.DS18B20[5],&Memory.DS18B20[6],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
+      }
 }
 
 
