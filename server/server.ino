@@ -27,7 +27,7 @@ typedef struct
   int32_t lattitude = 0x00000000;
   int32_t longtitude = 0x00000000;
   int32_t altitude = 0x00000000;
-  int16_t DS18B20[4] = {0x0000};
+  int16_t DS18B20[7] = {0x0000};
   int16_t RTD[30] = {0x0000};
   int16_t mosfet[12] = {0x0000};
   int16_t flag_main = 0x0000;
@@ -164,8 +164,9 @@ void processMessage(String Message) {
   if(Message.indexOf(command) >= 0) {
       Message.remove(0, Message.indexOf(command) + command.length());
       Message.toCharArray(temp, Message.length()+1);
-      sscanf(temp, "%c,%c,%c,%hd,%hd,%hd,%hd,%hd,%hd,%d,%d,%d,%hd", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
-  }
+
+      sscanf(temp, "%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%d,%u,%u,%d,%d", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.DS18B20[5],&Memory.DS18B20[6],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
+   }
 }
 
 
@@ -200,7 +201,7 @@ String HTMLResponse(String body)
 String CSVmemoryDump() {
   //CSV: hour,minute,second,humidity,pressure,lattitude,longitude,4xDS18B20,30xRTD,12xmosfet,flag_main,flag_antares,flag_odcinacz
   String CSV = String(Memory.hour) + "," + Memory.minute + "," + Memory.second + "," + Memory.humidity + "," + Memory.pressure + "," + Memory.lattitude + "," + Memory.longtitude + ",";
-  for (int i = 0; i < 4; ++i) {
+  for (int i = 0; i < 6; ++i) {
     CSV += String(Memory.DS18B20[i]) + ",";
   }
 
