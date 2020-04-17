@@ -2,6 +2,8 @@
 
 #define LED0 2 // WIFI Module LED
 
+#define DEBUG
+
 // Variables
 char *ssid = "Hermes"; // Wifi Name
 char *password = "thereisnospoon";   // Wifi Password
@@ -37,7 +39,9 @@ void loop()
   if (WiFi.status() != WL_CONNECTED)
   {
     // Reconnect
+#ifdef DEBUG
     Serial.println("Disconnected.");
+#endif
     connectToAP();
     while (1)
     {
@@ -76,8 +80,13 @@ void sendData(String *message)
         len = 80;
       }
       String line = client.readStringUntil('\r'); // if '\r' is found
+#ifdef DEBUG
       Serial.print("received: ");                 // print the content
-      Serial.println(line);
+#endif
+      Serial.write(line[0]);
+      Serial.write(line[1]);
+      Serial.write(line[2]);
+      Serial.write(line[3]);
       break;
     }
   }
@@ -94,7 +103,9 @@ void connectToAP()
 
     client.stop(); //Make Sure Everything Is Reset
     WiFi.disconnect();
+#ifdef DEBUG
     Serial.println("Not Connected...trying to connect...");
+#endif
     delay(50);
     WiFi.mode(WIFI_STA);        // station (Client) Only - to avoid broadcasting an SSID ??
     WiFi.begin(ssid, password); // the SSID that we want to connect to
@@ -108,12 +119,17 @@ void connectToAP()
         delay(250);
         digitalWrite(LED0, !LOW);
         delay(250);
+#ifdef DEBUG
         Serial.print(".");
+#endif
       }
+#ifdef DEBUG
       Serial.println("");
+#endif
     }
     // stop blinking to indicate if connected -------------------------------
     digitalWrite(LED0, !HIGH);
+#ifdef DEBUG
     Serial.println("!-- Client Device Connected --!");
 
     // Printing IP Address --------------------------------------------------
@@ -123,7 +139,7 @@ void connectToAP()
     Serial.println(server);
     Serial.print("Device IP Address : ");
     Serial.println(WiFi.localIP());
-
+#endif
     establishConnection();
   }
 }
@@ -136,7 +152,9 @@ void establishConnection()
   // if sucessfully connected send connection message
   if (client.connect(server, port))
   {
+#ifdef DEBUG
     Serial.println("<" + Devicename + "-CONNECTED>");
+#endif
     client.println("<" + Devicename + "-CONNECTED>");
   }
   client.setNoDelay(1); // allow fast communication?

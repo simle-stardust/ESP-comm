@@ -2,6 +2,8 @@
 #define LED0 2
 #define MAXSC 6 // MAXIMUM NUMBER OF CLIENTS
 
+#define DEBUG
+
 char *ssid = "Hermes";
 char *password = "thereisnospoon";
 unsigned int TCPPort = 2390;
@@ -19,19 +21,19 @@ WiFiClient  client[MAXSC];        // THE SERVER CLIENTS Maximum number
 
 typedef struct
 {
-  int8_t hour = 0x00;
-  int8_t minute = 0x00;
-  int8_t second = 0x00;
-  int16_t humidity = 0x0000;
-  int16_t pressure = 0x0000;
+  int16_t hour = 0x00;
+  int16_t minute = 0x00;
+  int16_t second = 0x00;
+  uint16_t humidity = 0x0000;
+  uint16_t pressure = 0x0000;
   int32_t lattitude = 0x00000000;
   int32_t longtitude = 0x00000000;
   int32_t altitude = 0x00000000;
-  int16_t DS18B20[7] = {0x0000};
+  int16_t DS18B20[3] = {0x0000};
   int16_t RTD[30] = {0x0000};
-  int16_t mosfet[12] = {0x0000};
-  int16_t flag_main = 0x0000;
-  int16_t flag_antares = 0x0000;
+  uint8_t mosfet[12] = {0x00};
+  uint16_t flag_main = 0x0000;
+  uint16_t flag_antares = 0x0000;
   int16_t fallDownToEarth = 0x0000;
 } frame_main;
 
@@ -51,21 +53,27 @@ void loop() {
   digitalWrite(LED0, !LOW);
   String message = readSerial(serialStart, serialEnd);
   if(message.indexOf("MarcinOdcinaj") >= 0) {
-    Serial.println("!!!! ODCIECIE !!!!");
+    Serial.println("@MarcinOK");
     Memory.fallDownToEarth = 0x1111;    
   }
   if(message.indexOf("MarcinSetValues") >= 0) {
+#ifdef DEBUG
     Serial.println("SERIAL SET VALUES: ");
     Serial.println(message);
+#endif
     processMessage(message);
   }
   if(message.indexOf("MarcinGetValues") >= 0) {
+#ifdef DEBUG
     Serial.print("SERIAL GET VALUES");
+#endif
     Serial.println("@MarcinOK:" + CSVmemoryDump() + "!");
   }
   if(message.indexOf("reset") >= 0) {
+#ifdef DEBUG
     Serial.println("ODCIECIE RESET");
-    Memory.fallDownToEarth = 0x0000;    
+#endif
+    Memory.fallDownToEarth = 0x0000;
   }
     
   HandleClients();
@@ -79,12 +87,18 @@ void setAP(char* ssid, char* password) {
 
   // Setting The Wifi Mode
   WiFi.mode(WIFI_AP_STA);
+
+#ifdef DEBUG  
   Serial.println("WIFI Mode : AccessPoint");
+#endif
 
   // Starting the access point
   WiFi.softAPConfig(ip, gateway, mask);                 // softAPConfig (local_ip, gateway, subnet)
   WiFi.softAP(ssid, password, 1, 0, MAXSC);                           // WiFi.softAP(ssid, password, channel, hidden, max_connection)
+
+#ifdef DEBUG
   Serial.println("WIFI < " + String(ssid) + " > ... Started");
+#endif
 
   // wait a bit
   delay(50);
@@ -93,13 +107,16 @@ void setAP(char* ssid, char* password) {
   IPAddress IP = WiFi.softAPIP();
 
   // printing the server IP address
+#ifdef DEBUG
   Serial.print("AccessPoint IP : ");
   Serial.println(IP);
+#endif
 
   // starting server
-  server.begin();                                                 // which means basically WiFiServer(TCPPort);
-
+  server.begin();                                                          // which means basically WiFiServer(TCPPort);
+#ifdef DEBUG
   Serial.println("Server Started");
+#endif
 }
 
 void HandleClients() {
@@ -115,6 +132,7 @@ void HandleClients() {
         // read the message
         Message = client.readStringUntil('\r');
         
+#ifdef DEBUG
         // print the message on the screen
         Serial.println("Received Message:");
 
@@ -127,7 +145,7 @@ void HandleClients() {
         // content
         Serial.print("Content: ");
         Serial.println(Message);
-        
+#endif
         processMessage(Message);
 
         // reply to the client with a message
@@ -144,7 +162,16 @@ void HandleClients() {
             client.println("I'm a teapot");
           }
         }
-        else {
+        else if (Message.indexOf("MarcinSetValuesKom") >= 0) {
+          client.println("@MarcinOK");
+        }
+        else if (Message.indexOf("MarcinGetWysokosc") >= 0) {
+          client.write((uint8_t)((uint32_t)Memory.altitude >> 24 ));
+          client.write((uint8_t)((uint32_t)Memory.altitude >> 16 ));
+          client.write((uint8_t)((uint32_t)Memory.altitude >> 8 ));
+          client.write((uint8_t)Memory.altitude);
+          client.println("");
+        } else {
           client.println("OK");  // important to use println instead of print, as we are looking for a '\r' at the client
         }
 
@@ -170,7 +197,7 @@ void processMessage(String Message) {
       Message.remove(0, Message.indexOf(command) + command.length());
       Message.toCharArray(temp, Message.length()+1);
 
-      sscanf(temp, "%c,%c,%c,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%d,%d,%d,%hd", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.DS18B20[5],&Memory.DS18B20[6],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
+      sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hd,%hu,%hu,%d,%d,%d,%hu", &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],&Memory.DS18B20[2],&Memory.DS18B20[3],&Memory.DS18B20[4],&Memory.DS18B20[5],&Memory.DS18B20[6],&Memory.humidity,&Memory.pressure,&Memory.lattitude,&Memory.longtitude,&Memory.altitude,&Memory.flag_main);
       }
 }
 
