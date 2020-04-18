@@ -83,10 +83,17 @@ void sendData(String *message)
 #ifdef DEBUG
       Serial.print("received: ");                 // print the content
 #endif
-      Serial.write(line[0]);
-      Serial.write(line[1]);
-      Serial.write(line[2]);
-      Serial.write(line[3]);
+      if (message->indexOf("Wysokosc") >= 0)
+      {
+        Serial.write(line[0]);
+        Serial.write(line[1]);
+        Serial.write(line[2]);
+        Serial.write(line[3]);
+      }
+      else
+      {
+        Serial.println(line);
+      }
       break;
     }
   }
