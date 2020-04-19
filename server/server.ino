@@ -2,7 +2,7 @@
 #define LED0 2
 #define MAXSC 6 // MAXIMUM NUMBER OF CLIENTS
 
-#define DEBUG
+//#define DEBUG
 
 char *ssid = "Hermes";
 char *password = "thereisnospoon";
@@ -67,6 +67,8 @@ void setup() {
 
   setAP(ssid, password);
 
+  // for tests to see if the values are properly received in main gondola
+  //memset(&Memory.RTD, '1', sizeof(Memory.RTD));
 }
 
 void loop() {
@@ -174,18 +176,16 @@ void HandleClients() {
         if (Message.indexOf("GET") >= 0) {
           
           digitalWrite(LED0, !HIGH);
-          
+#ifdef DEBUG
           Serial.println("Serving GET request");
+#endif
           if (Message.indexOf("/memory/") >= 0) {
             String resp = HTMLResponse(CSVmemoryDump());
-            Serial.println(resp.length());
             uint8_t i = 0;
             for (; i < resp.length()/200; i++)
             {
-              Serial.print(resp.substring(i * 200, (i+1) * 200));
               client.print(resp.substring(i * 200, (i+1) * 200));
             }
-            Serial.println(resp.substring(i * 200, resp.length()));
             client.println(resp.substring(i * 200, resp.length()));
           } else if (Message.indexOf("/fallDownToEarth/") >= 0) {
             client.println(Memory.fallDownToEarth);
