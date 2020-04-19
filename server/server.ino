@@ -72,7 +72,6 @@ void setup() {
 }
 
 void loop() {
-  digitalWrite(LED0, !LOW);
   String message = readSerial(serialStart, serialEnd);
   if(message.indexOf("MarcinOdcinaj") >= 0) {
     Serial.println("@MarcinOK");
@@ -83,7 +82,10 @@ void loop() {
     Serial.println("SERIAL SET VALUES: ");
     Serial.println(message);
 #endif
+    
+    digitalWrite(LED0, !HIGH);
     processMessage(message);
+    digitalWrite(LED0, !LOW);
   }
   if(message.indexOf("MarcinGetValues") >= 0) {
 #ifdef DEBUG
@@ -174,8 +176,6 @@ void HandleClients() {
 
         // reply to the client with a message
         if (Message.indexOf("GET") >= 0) {
-          
-          digitalWrite(LED0, !HIGH);
 #ifdef DEBUG
           Serial.println("Serving GET request");
 #endif
