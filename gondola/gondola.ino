@@ -2,7 +2,7 @@
 
 #define LED0 2 // WIFI Module LED
 
-#define DEBUG
+//#define DEBUG
 
 // Variables
 char *ssid = "Hermes"; // Wifi Name

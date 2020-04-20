@@ -55,6 +55,7 @@ typedef struct
   uint16_t flag_main = 0x0000;
   uint16_t flag_antares = 0x0000;
   int16_t fallDownToEarth = 0x0000;
+  uint16_t hdop = 0x00;
 } frame_main;
 
 frame_main Memory;
@@ -237,10 +238,10 @@ void processMessage(String Message) {
       Message.remove(0, Message.indexOf(command) + command.length());
       Message.toCharArray(temp, Message.length()+1);
 
-      sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hu,%hu,%d,%d,%d,%hu", 
+      sscanf(temp, "%hd,%hd,%hd,%hd,%hd,%hd,%hu,%hu,%d,%d,%d,%hu,%hu", 
       &Memory.hour,&Memory.minute,&Memory.second,&Memory.DS18B20[0],&Memory.DS18B20[1],
       &Memory.DS18B20[2],&Memory.humidity,&Memory.pressure,&Memory.lattitude,
-      &Memory.longtitude,&Memory.altitude,&Memory.flag_main);
+      &Memory.longtitude,&Memory.altitude,&Memory.flag_main, &Memory.hdop);
   }
 }
 
@@ -281,6 +282,7 @@ String CSVmemoryDump() {
   CSV += "Lattitude: " + String(Memory.lattitude) + "<br/>";
   CSV += "Longtitude: " + String(Memory.longtitude) + "<br/>";
   CSV += "Altitude: " + String(Memory.altitude) + "<br/>";
+  CSV += "HDOP: " + String(Memory.hdop) + "<br/>";
 
   for (int i = 0; i < 3; ++i) {
     CSV += "DS18B20[" + String(i) + "]: " + String(Memory.DS18B20[i]) + "<br />";
