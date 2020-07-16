@@ -1,0 +1,53 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Upload (esp12e_server)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Upload (esp12e_server)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Upload (esp12e_experiment)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Upload (esp12e_experiment)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Upload (esp12e_cutter)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Upload (esp12e_cutter)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Build (esp12e_server)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Build (esp12e_server)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Build (esp12e_experiment)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Build (esp12e_experiment)"
+		},
+		{
+			"type": "PlatformIO",
+			"task": "Build (esp12e_cutter)",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Build (esp12e_cutter)"
+		}
+	]
+}
