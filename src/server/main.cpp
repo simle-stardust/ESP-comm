@@ -28,10 +28,9 @@ const char *const RTDStrings[] =
 const char *const HeaterStrings[] =
 	{"Lower", "Upper"};
 
-static const char main_error_strings[17][17] = {"I2C_PRESSURE_ERR", "I2C_RTC_ERR",
-												"POWER_LED_FLAG", "I2C_MAX30205_ERR", "I2C_HDC1080_ERR", "I2C_INA3221_ERR",
-												"I2C_GYRO_ERR", "I2C_ACC_ERR", "I2C_BARO_ERR", "DS18_ERR", "SD_ERR",
-												"GPS_ERR", "WIFI_ERR", "LORA_ERR", "ODCINACZ_FLAG", "RUNNING_FLAG"};
+static const char main_error_strings[17][17] = {"STATUS_BYTE0", "STATUS_BYTE1", "STATUS_BYTE2",
+												"I2C_PRESSURE_ERR", "I2C_RTC_ERR", "POWER_LED_FLAG","I2C_GYRO_ERR", "I2C_ACC_ERR", "I2C_BARO_ERR",
+												"DS18_ERR", "SD_ERR", "GPS_ERR", "WIFI_ERR", "LORA_ERR", "ODCINACZ_FLAG", "RUNNING_FLAG"};
 
 static const char exp_error_strings[17][17] = {
 	"TEMP1_DN_OK",
@@ -112,7 +111,6 @@ void setAP(char *ssid, char *password)
 #endif
 }
 
-
 String CSVmemoryDump()
 {
 	//CSV: hour,minute,second,humidity,pressure,lattitude,longitude,4xDS18B20,30xRTD,12xmosfet,flag_main,flag_antares,flag_odcinacz
@@ -192,7 +190,6 @@ void RawMemoryDump()
 	Serial.write((uint8_t)Memory.flag_antares);
 }
 
-
 String HTMLResponse(String body)
 {
 
@@ -210,7 +207,6 @@ String HTMLResponse(String body)
 		"\r\n" + content;
 	return htmlPage;
 }
-
 
 void processMessage(String Message)
 {
@@ -244,7 +240,6 @@ void processMessage(String Message)
 			   &Memory.longtitude, &Memory.altitude, &Memory.flag_main, &Memory.hdop);
 	}
 }
-
 
 void HandleClients()
 {
@@ -316,6 +311,12 @@ void HandleClients()
 					client.write((uint8_t)Memory.altitude);
 					client.println("");
 				}
+				else if (Message.indexOf("MarcinGetStatus") >= 0)
+				{
+					client.write((uint8_t)(Memory.flag_main & 0x07));
+					client.println("");
+				}
+
 				else
 				{
 					client.println("OK"); // important to use println instead of print, as we are looking for a '\r' at the client
