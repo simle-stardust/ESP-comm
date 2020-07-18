@@ -5,8 +5,8 @@
 //#define DEBUG
 
 // Variables
-char *ssid = "Hermes"; // Wifi Name
-char *password = "thereisnospoon";   // Wifi Password
+char *ssid = "Hermes";			   // Wifi Name
+char *password = "thereisnospoon"; // Wifi Password
 const String Devicename = "Antares";
 
 char serialStart = '@';
@@ -52,7 +52,7 @@ void connectToAP()
 		Serial.println("Not Connected...trying to connect...");
 #endif
 		delay(50);
-		WiFi.mode(WIFI_STA);        // station (Client) Only - to avoid broadcasting an SSID ??
+		WiFi.mode(WIFI_STA);		// station (Client) Only - to avoid broadcasting an SSID ??
 		WiFi.begin(ssid, password); // the SSID that we want to connect to
 		WiFi.config(ip, gateway, mask);
 
@@ -94,7 +94,7 @@ void sendData(String *message)
 
 	// conecting as a client
 	client.connect(server, port);
-		
+
 	// Send Data
 	client.println(*message);
 
@@ -110,19 +110,10 @@ void sendData(String *message)
 			}
 			String line = client.readStringUntil('\r'); // if '\r' is found
 #ifdef DEBUG
-			Serial.print("received: ");                 // print the content
+			Serial.print("received: "); // print the content
 #endif
-			if (message->indexOf("Wysokosc") >= 0)
-			{
-				Serial.write(line[0]);
-				Serial.write(line[1]);
-				Serial.write(line[2]);
-				Serial.write(line[3]);
-			}
-			else
-			{
-				Serial.println(line);
-			}
+			Serial.println(line);
+
 			break;
 		}
 	}
@@ -132,9 +123,11 @@ void sendData(String *message)
 	connectToAP();
 }
 
-String readSerial(char startMarker, char endMarker) {
+String readSerial(char startMarker, char endMarker)
+{
 	String message = Serial.readStringUntil(endMarker);
-	if (message.indexOf(startMarker) >= 0) {
+	if (message.indexOf(startMarker) >= 0)
+	{
 		message.remove(0, message.indexOf(startMarker) + 1);
 		return message;
 	}
@@ -145,7 +138,7 @@ void setup()
 {
 	Serial.begin(115200);
 
-	pinMode(LED0, OUTPUT);    // WIFI OnBoard LED Light
+	pinMode(LED0, OUTPUT);	  // WIFI OnBoard LED Light
 	digitalWrite(LED0, !LOW); // Turn WiFi LED Off
 
 	connectToAP();
@@ -154,7 +147,7 @@ void setup()
 void loop()
 {
 
-		 // Check WiFi connectivity;
+	// Check WiFi connectivity;
 	if (WiFi.status() != WL_CONNECTED)
 	{
 		// Reconnect
@@ -176,5 +169,4 @@ void loop()
 			sendData(&message);
 		}
 	}
-	
 }
