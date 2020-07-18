@@ -238,7 +238,7 @@ void processMessage(String Message)
 		Message.remove(0, Message.indexOf(command) + command.length());
 		Message.toCharArray(temp, Message.length() + 1);
 		sscanf(temp, "%hd",
-			   &Memory.statusStardust);
+			   &Memory.flag_antares);
 	}
 
 	command = "MarcinSetValues:";
