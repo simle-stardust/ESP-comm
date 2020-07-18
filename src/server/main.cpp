@@ -29,7 +29,7 @@ const char *const HeaterStrings[] =
 	{"Lower", "Upper"};
 
 static const char main_error_strings[17][17] = {"STATUS_BYTE0", "STATUS_BYTE1", "STATUS_BYTE2",
-												"I2C_PRESSURE_ERR", "I2C_RTC_ERR", "POWER_LED_FLAG","I2C_GYRO_ERR", "I2C_ACC_ERR", "I2C_BARO_ERR",
+												"I2C_PRESSURE_ERR", "I2C_RTC_ERR", "POWER_LED_FLAG", "FLIGHT_IS_ON", "I2C_ACC_ERR", "I2C_BARO_ERR",
 												"DS18_ERR", "SD_ERR", "GPS_ERR", "WIFI_ERR", "LORA_ERR", "ODCINACZ_FLAG", "RUNNING_FLAG"};
 
 static const char exp_error_strings[17][17] = {
@@ -66,6 +66,7 @@ typedef struct
 	uint16_t mosfet[12] = {0x00};
 	uint16_t flag_main = 0x0000;
 	uint16_t flag_antares = 0x0000;
+	uint16_t statusStardust = 0x00;
 	int16_t fallDownToEarth = 0x0000;
 	uint16_t hdop = 0x00;
 } frame_main;
@@ -147,7 +148,9 @@ String CSVmemoryDump()
 
 	CSV += "Flag raw main: " + String(Memory.flag_main, BIN) + "<br/>";
 	CSV += "Flag raw experiment: " + String(Memory.flag_antares, BIN) + "<br/>";
-	CSV += "Falldown: " + String(Memory.fallDownToEarth, BIN) + "<br/><br/>";
+	CSV += "Falldown: " + String(Memory.fallDownToEarth, BIN) + "<br/>";
+	CSV += "Status Stardust: " + String(Memory.statusStardust) + "<br/>";
+	CSV += "In flight: " + String(((uint8_t)Memory.flag_main & 0x40) >> 6) + "<br/><br/>";
 
 	CSV += "Flags main: ";
 
@@ -228,6 +231,16 @@ void processMessage(String Message)
 			   &Memory.mosfet[10], &Memory.mosfet[11], &Memory.flag_antares);
 	}
 
+	command = "MarcinSetStatus:";
+
+	if (Message.indexOf(command) >= 0)
+	{
+		Message.remove(0, Message.indexOf(command) + command.length());
+		Message.toCharArray(temp, Message.length() + 1);
+		sscanf(temp, "%hd",
+			   &Memory.statusStardust);
+	}
+
 	command = "MarcinSetValues:";
 	if (Message.indexOf(command) >= 0)
 	{
@@ -238,6 +251,15 @@ void processMessage(String Message)
 			   &Memory.hour, &Memory.minute, &Memory.second, &Memory.DS18B20[0], &Memory.DS18B20[1],
 			   &Memory.DS18B20[2], &Memory.humidity, &Memory.pressure, &Memory.lattitude,
 			   &Memory.longtitude, &Memory.altitude, &Memory.flag_main, &Memory.hdop);
+	}
+
+	if (Memory.flag_main & 0x4000)
+	{
+		Memory.fallDownToEarth = 0x1111;
+	}
+	else
+	{
+		Memory.fallDownToEarth = 0x0000;
 	}
 }
 
@@ -294,6 +316,10 @@ void HandleClients()
 					{
 						client.println(Memory.fallDownToEarth);
 					}
+					else if (Message.indexOf("/inFlight/") >= 0)
+					{
+						client.println((((uint8_t)Memory.flag_main & 0x40) >> 6) ? 0x1111 : 0x0000);
+					}
 					else if (Message.indexOf("/418/") >= 0)
 					{
 						client.println("I'm a teapot");
@@ -316,7 +342,6 @@ void HandleClients()
 					client.write((uint8_t)(Memory.flag_main & 0x07));
 					client.println("");
 				}
-
 				else
 				{
 					client.println("OK"); // important to use println instead of print, as we are looking for a '\r' at the client
