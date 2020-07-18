@@ -339,7 +339,8 @@ void HandleClients()
 				}
 				else if (Message.indexOf("MarcinGetStatus") >= 0)
 				{
-					client.write((uint8_t)(Memory.flag_main & 0x07));
+					client.write((uint8_t)((uint32_t)Memory.flag_main >> 8));
+					client.write((uint8_t)Memory.flag_main);
 					client.println("");
 				}
 				else
