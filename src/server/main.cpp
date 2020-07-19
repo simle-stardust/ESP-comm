@@ -231,7 +231,7 @@ void processMessage(String Message)
 			   &Memory.mosfet[10], &Memory.mosfet[11], &Memory.flag_antares);
 	}
 
-	command = "MarcinSetStatus:";
+	command = "MarcinSetStardust:";
 
 	if (Message.indexOf(command) >= 0)
 	{
@@ -326,7 +326,7 @@ void HandleClients()
 					}
 				}
 				else if ((Message.indexOf("MarcinSetValuesKom") >= 0)
-				           || (Message.indexOf("MarcinSetStatus") >= 0))
+				           || (Message.indexOf("MarcinSetStardust") >= 0))
 				{
 					client.println("@MarcinOK!");
 				}
