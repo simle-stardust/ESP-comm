@@ -119,14 +119,18 @@ void sendData(String *message)
 				Serial.write(line[1]);
 				Serial.write(line[2]);
 				Serial.write(line[3]);
+				Serial.write(line[4]);
+				Serial.write(line[5]);
 				Serial.write('!');
 			}
 			else if (message->indexOf("Status") >= 0)
 			{
+				/*
 				Serial.write('@');
 				Serial.write(line[0]);
 				Serial.write(line[1]);
 				Serial.write('!');
+				*/
 			}
 			else
 			{

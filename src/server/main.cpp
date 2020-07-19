@@ -336,14 +336,18 @@ void HandleClients()
 					client.write((uint8_t)((uint32_t)Memory.altitude >> 16));
 					client.write((uint8_t)((uint32_t)Memory.altitude >> 8));
 					client.write((uint8_t)Memory.altitude);
+					client.write((uint8_t)((uint32_t)Memory.flag_main >> 8));
+					client.write((uint8_t)Memory.flag_main);
 					client.println("");
 				}
+				/*
 				else if (Message.indexOf("MarcinGetStatus") >= 0)
 				{
 					client.write((uint8_t)((uint32_t)Memory.flag_main >> 8));
 					client.write((uint8_t)Memory.flag_main);
 					client.println("");
 				}
+				*/
 				else
 				{
 					client.println("OK"); // important to use println instead of print, as we are looking for a '\r' at the client
