@@ -325,7 +325,8 @@ void HandleClients()
 						client.println("I'm a teapot");
 					}
 				}
-				else if (Message.indexOf("MarcinSetValuesKom") >= 0)
+				else if ((Message.indexOf("MarcinSetValuesKom") >= 0)
+				           || (Message.indexOf("MarcinSetStatus") >= 0))
 				{
 					client.println("@MarcinOK!");
 				}
