@@ -373,6 +373,7 @@ void setup()
 {
 
 	Serial.begin(115200);
+	Serial.setTimeout(200);
 
 	pinMode(LED0, OUTPUT);
 
