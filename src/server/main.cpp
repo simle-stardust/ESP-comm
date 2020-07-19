@@ -241,6 +241,16 @@ void processMessage(String Message)
 			   &Memory.flag_antares);
 	}
 
+	command = "MarcinGetWysokosc:";
+
+	if (Message.indexOf(command) >= 0)
+	{
+		Message.remove(0, Message.indexOf(command) + command.length());
+		Message.toCharArray(temp, Message.length() + 1);
+		sscanf(temp, "%hd",
+			   &Memory.flag_antares);
+	}
+
 	command = "MarcinSetValues:";
 	if (Message.indexOf(command) >= 0)
 	{
@@ -330,7 +340,7 @@ void HandleClients()
 				{
 					client.println("@MarcinOK!");
 				}
-				else if (Message.indexOf("MarcinGetWysokosc") >= 0)
+				else if (Message.indexOf("MarcinGetWysokosc:") >= 0)
 				{
 					client.write((uint8_t)((uint32_t)Memory.altitude >> 24));
 					client.write((uint8_t)((uint32_t)Memory.altitude >> 16));
